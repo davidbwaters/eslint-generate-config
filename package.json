@@ -5,13 +5,9 @@
   "repository": "https://github.com/davidbwaters/eslint-config-generator",
   "author": "David B. Waters",
   "license": "MIT",
-
   "scripts": {
-    "build": "node scripts/build.js",
-    "setup": "scripts/setup.sh",
-    "prebuild": "yarn clean",
-    "preinstall": "scripts/setup.sh",
-    "clean": "scripts/clean.sh"
+    "preinstall": "scripts/clean.sh && scripts/setup.sh",
+    "build": "scripts/clean.sh && node scripts/build.js"
   },
   "base": "./input",
   "dependencies": {
@@ -40,6 +36,7 @@
     "json-stable-stringify-without-jsonify": "^1.0.1",
     "levn": "^0.3.0",
     "lodash": "^4.17.15",
+    "merge-deep": "^3.0.2",
     "minimatch": "^3.0.4",
     "natural-compare": "^1.4.0",
     "optionator": "^0.8.3",
