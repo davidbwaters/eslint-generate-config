@@ -18,9 +18,7 @@ exports.singleToDoubleQts = str => {
 }
 
 exports.formatJSON = obj => {
-  return exports.singleToDoubleQts(
-    JSON.stringify(obj, null, 4)
-  )
+  return JSON.stringify(obj, null, 4)
 }
 
 exports.wrapText = (text, pre = '// ', ln = 60) => {
@@ -33,7 +31,7 @@ exports.listFiles = dirPath => {
   return fs.readdirSync(dirPath)
 }
 
-exports.getFileModule= (filename, dirPath = './') => {
+exports.getFileModule= (filename, dirPath =__dirname) => {
   const filePath = path.resolve(dirPath, filename)
 
   return require(filePath)
@@ -71,8 +69,7 @@ exports.getUncommonKeys = (o1, o2) => {
   return [...uc1, ...uc2]
 }
 
-exports.buildHeader = str => `//n\n//  ${str}\n//\n\n`
-
+exports.buildHeader = str => `//\n//${str}\n//\n\n`
 
 const a = {cock: 2, balls: 3, pussy: 1, cup: 4}
 const b = {balls: 4, cup: 2, plant: 3}

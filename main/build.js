@@ -2,14 +2,13 @@
 //  Build
 //
 
-// const path = require('path')
+
 const u = require('./utilities.js')
 
 function getRuleFiles(ruleDir) {
   return u.listFiles(ruleDir).filter(filename => {
     return filename !== 'utils' && filename !== 'index.js'
   })
-
 }
 
 function buildRuleData(ruleDir) {
@@ -33,43 +32,46 @@ function getBaseConfig(baseDir) {
 }
 
 function buildBlankRuleConfig(ruleData) {
-  const ruleNames = ruleData.map( rule => rule.name )
-  return ruleNames.reduce( (config, rule) => {
-    const obj = {}
-    obj[rule] = 0
+  return ruleData
+    .map( rule => rule.name )
+    .reduce( (config, rule) => {
+      const obj = {}
+      obj[rule] = 0
 
-    return Object.assign(config, obj)
-  }, {})
+      return Object.assign(config, obj)
+    }, {})
 }
 
-function buildRuleConfig(blankRuleConfig, baseConfig) {
-  const commonRules = u.getCommonKeys(
-    blankRuleConfig, baseConfig.rules
-  )
+function buildConfig(blankRuleConfig, baseConfig) {
+  return u
+    .getCommonKeys(blankRuleConfig, baseConfig.rules)
+    .reduce( (config, rule) => {
+      const obj = { rules: {} }
+      obj.rules[rule] = baseConfig.rules[rule]
 
-  return commonRules.reduce( (config, rule) => {
-    const obj = {}
-    obj[rule] = baseConfig.rules[rule]
-
-    return Object.assign(config, obj)
-  }, blankRuleConfig)
+      return { rules: { ...config.rules, ...obj.rules } }
+    }, { rules: blankRuleConfig })
 }
 
 function buildOtherConfig(blankRuleConfig, baseConfig) {
-  const otherRules = u.getUncommonKeys(
-    blankRuleConfig, baseConfig.rules
-  )
-  const config = { rules: otherRules }
-  const newConfig = Object.assign(baseConfig, config )
-  const header = u.buildHeader('Other')
+  const config = u
+    .getUncommonKeys(blankRuleConfig, baseConfig.rules)
+    .reduce( (config, rule) => {
+      const obj = { rules: {} }
+      obj.rules[rule] = baseConfig.rules[rule]
 
-  return header + u.formatJSON(newConfig)
+      return { rules: { ...config.rules, ...obj.rules } }
+    }, { rules: {} })
+
+  const module = 'module.exports = ' + u.formatJSON(config)
+
+  return u.buildHeader('Other') + module
 }
 
 function buildData(ruleData, ruleConfig) {
 
-  return ruleData.reduce( (newData, data) => {
-    const value = ruleConfig[data.name]
+  const allData = ruleData.reduce( (newData, data) => {
+    const value = ruleConfig.rules[data.name]
     const obj= {}
 
     obj[data.type] = {}
@@ -90,22 +92,23 @@ function buildData(ruleData, ruleConfig) {
     }
 
   }, {})
+
+  return allData
 }
 
 function build(ruleDir, baseDir) {
   const ruleData = buildRuleData(ruleDir)
   const baseConfig = getBaseConfig(baseDir)
   const blankRuleConfig = buildBlankRuleConfig(ruleData)
-  const ruleConfig = buildRuleConfig(
+  const config = buildConfig(
     blankRuleConfig, baseConfig
   )
   const otherConfig = buildOtherConfig(
     blankRuleConfig, baseConfig
   )
-  const data = buildData(ruleData, ruleConfig)
+  const data = buildData(ruleData, config)
 
-  console.log(data.layout.semi)
+  console.log(data)
 }
-
 
 build('./vendor/lib/rules/', './input')
