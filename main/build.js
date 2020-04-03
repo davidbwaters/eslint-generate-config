@@ -7,8 +7,9 @@ const u = require('./utilities.js')
 
 function getRuleFiles(ruleDir) {
   return u.listFiles(ruleDir).filter(filename => {
-    filename !== 'utils' && filename !== 'index.js'
+    return filename !== 'utils' && filename !== 'index.js'
   })
+
 }
 
 function buildRuleData(ruleDir) {
@@ -20,44 +21,44 @@ function buildRuleData(ruleDir) {
       return {
         filename: fileName,
         type: type,
-        name: fileName.replace('.js'/g, ''),
-        category: ruleMeta.docs.category,
+        name: fileName.replace(/.js/g, ''),
+        category: docs.category,
         description: u.capitalize(docs.description),
       }
     })
 }
 
-function getRuleNames(ruleData) {
-  return ruleData.map( rule => rule.name )
-}
-
 function getBaseConfig(baseDir) {
-  return u.mergeJSONFiles(baseDir)
+  return u.mergeInputObjects(baseDir)
 }
 
-function buildRuleValues(ruleNames, baseConfig) {
-
-  const baseRuleConfig = baseConfig.rules
-  const baseRules = Object.keys(baseRuleConfig)
-  const commonRules = u.getCommonKeys(ruleNames, mainRules)
-
-  const blankConfig = ruleNames.reduce( (cfg, rule) => {
+function buildBlankRuleConfig(ruleData) {
+  const ruleNames = ruleData.map( rule => rule.name )
+  return ruleNames.reduce( (config, rule) => {
     const obj = {}
     obj[rule] = 0
 
-    return Object.assign(cfg, obj)
+    return Object.assign(config, obj)
   }, {})
-
-  return commonRules.reduce( (cfg, rule) => {
-    const obj = {}
-    obj[rule] = baseRuleConfig[rule]
-
-    return Object.assign(cfg, obj)
-  }, blankConfig)
 }
 
-function buildOtherConfig(ruleNames, baseConfig) {
-  const otherRules = u.getUncommonKeys(baseRules, mainRules)
+function buildRuleConfig(blankRuleConfig, baseConfig) {
+  const commonRules = u.getCommonKeys(
+    blankRuleConfig, baseConfig.rules
+  )
+
+  return commonRules.reduce( (config, rule) => {
+    const obj = {}
+    obj[rule] = baseConfig.rules[rule]
+
+    return Object.assign(config, obj)
+  }, blankRuleConfig)
+}
+
+function buildOtherConfig(blankRuleConfig, baseConfig) {
+  const otherRules = u.getUncommonKeys(
+    blankRuleConfig, baseConfig.rules
+  )
   const config = { rules: otherRules }
   const newConfig = Object.assign(baseConfig, config )
   const header = u.buildHeader('Other')
@@ -65,42 +66,46 @@ function buildOtherConfig(ruleNames, baseConfig) {
   return header + u.formatJSON(newConfig)
 }
 
-function formatRuleValue(value) {
-  return u.singleToDoubleQuotes(JSON.stringify(value))
-}
+function buildData(ruleData, ruleConfig) {
 
-function buildRuleConfigData(ruleData, ruleValues) {
-  const ruleConfig = ruleData.reduce( (data, newData) => {
-    const value = formatRuleValue(ruleValues[name])
+  return ruleData.reduce( (newData, data) => {
+    const value = ruleConfig[data.name]
+    const obj= {}
 
-    const ruleConfig = {}
+    obj[data.type] = {}
+    obj[data.type][data.name] =
+      u.wrapText(data.description, '    //  ') + '\n' +
+      u.wrapText(data.name + ' = ' + value, '    ') + '\n\n'
 
-    ruleConfig[data.name] =
-      `${u.wrapText(data.description), '    //  '} \n` +
-      u.wrapText(`${data.name} = ${value}`, '    ') + '\n\n'
+    if (newData[data.type]) {
+      obj[data.type] = {
+        ...newData[data.type],
+        ...obj[data.type]
+      }
+    }
 
-    return newData[data.type]
-      ? newData[data.type] = {
-          ...newData[data.type],
-          ...ruleConfig
-        }
-      : newData[data.type = ruleConfig]
+    return {
+      ...newData,
+      ...obj
+    }
 
   }, {})
 }
 
 function build(ruleDir, baseDir) {
   const ruleData = buildRuleData(ruleDir)
-  const ruleNames = getRuleNames(ruleData)
-  const baseCfg = getBaseConfig(baseDir)
-  console.log(' * ' + baseCfg)
-  const ruleValues = buildRuleValues(ruleNames, baseCfg)
-  console.log(' * ' + ruleValues)
-  const otherCfg = buildOtherConfig(ruleNames, baseCfg)
+  const baseConfig = getBaseConfig(baseDir)
+  const blankRuleConfig = buildBlankRuleConfig(ruleData)
+  const ruleConfig = buildRuleConfig(
+    blankRuleConfig, baseConfig
+  )
+  const otherConfig = buildOtherConfig(
+    blankRuleConfig, baseConfig
+  )
+  const data = buildData(ruleData, ruleConfig)
 
-
-
-  console.log(' * ' + otherCfg)
+  console.log(data.layout.semi)
 }
+
 
 build('./vendor/lib/rules/', './input')

@@ -4,6 +4,7 @@
 
 const fs = require('fs')
 const path = require('path')
+const deepmerge = require('merge-deep')
 const wrap = require('word-wrap')
 
 exports.capitalize = str => {
@@ -16,14 +17,16 @@ exports.singleToDoubleQts = str => {
   str.replace(/"/g, '\'')
 }
 
+exports.formatJSON = obj => {
+  return exports.singleToDoubleQts(
+    JSON.stringify(obj, null, 4)
+  )
+}
+
 exports.wrapText = (text, pre = '// ', ln = 60) => {
   const width = ln - pre.length
 
   return wrap(text, {width: width, indent: pre})
-}
-
-exports.formatJSON = obj => {
-  return JSON.stringify(obj, null, 4)
 }
 
 exports.listFiles = dirPath => {
@@ -36,7 +39,7 @@ exports.getFileModule= (filename, dirPath = './') => {
   return require(filePath)
 }
 
-exports.mergeInputObjects = (dirPath) => {
+exports.mergeInputObjects = dirPath => {
   const files = exports.listFiles(dirPath)
 
   const objects = files.map(f => {
@@ -45,8 +48,7 @@ exports.mergeInputObjects = (dirPath) => {
       : {}
   })
 
-  console.log(objects)
-  return Object.assign({}, ...objects)
+  return deepmerge(...objects)
 }
 
 exports.getCommonKeys = (o1, o2) => {
@@ -74,6 +76,3 @@ exports.buildHeader = str => `//n\n//  ${str}\n//\n\n`
 
 const a = {cock: 2, balls: 3, pussy: 1, cup: 4}
 const b = {balls: 4, cup: 2, plant: 3}
-
-//console.log(module.exports.getCommonKeys(a,b))
-module.exports.mergeInputObjects('./input')
