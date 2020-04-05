@@ -4,6 +4,7 @@
 
 
 const u = require('./utilities.js')
+// const deepmerge = require('merge-deep')
 
 function getRuleFiles(ruleDir) {
   return u.listFiles(ruleDir).filter(filename => {
@@ -11,51 +12,47 @@ function getRuleFiles(ruleDir) {
   })
 }
 
-function buildRuleData(ruleDir) {
-  return getRuleFiles(ruleDir)
-    .map( fileName => {
-      const ruleModule = u.getFileModule(fileName, ruleDir)
-      const {type, docs} = ruleModule.meta
-
-      return {
-        filename: fileName,
-        type: type,
-        name: fileName.replace(/.js/g, ''),
-        category: docs.category,
-        description: u.capitalize(docs.description),
-      }
-    })
-}
-
 function getBaseConfig(baseDir) {
   return u.mergeInputObjects(baseDir)
 }
 
-function buildBlankRuleConfig(ruleData) {
-  return ruleData
-    .map( rule => rule.name )
-    .reduce( (config, rule) => {
-      const obj = {}
-      obj[rule] = 0
+function buildRuleData(ruleDir, baseConfig) {
+  return getRuleFiles(ruleDir)
+    .reduce( (data, fileName) => {
+      const meta = u.getFileModule(fileName, ruleDir).meta
+      const obj = Object.assign({}, data)
+      const name = fileName.replace(/.js/g, '')
+      const description = u.capitalize(docs.description)
 
-      return Object.assign(config, obj)
+      if (!obj[meta.docs.category]) {
+        obj[meta.docs.category] = {}
+      }
+
+      obj[meta.docs.category][name] = concat(
+        u.wrapText(data.description, '    //  ') + '\n',
+        u.wrapText(data.name + ' = ' + value, '    '),
+        '\n\n'
+      )
+
+      return obj
     }, {})
 }
 
-function buildConfig(blankRuleConfig, baseConfig) {
+function buildConfig(blankConfig, baseConfig) {
   return u
-    .getCommonKeys(blankRuleConfig, baseConfig.rules)
+    .getCommonKeys(blankConfig, baseConfig.rules)
     .reduce( (config, rule) => {
+
       const obj = { rules: {} }
       obj.rules[rule] = baseConfig.rules[rule]
 
       return { rules: { ...config.rules, ...obj.rules } }
-    }, { rules: blankRuleConfig })
+    }, { rules: blankConfig })
 }
 
-function buildOtherConfig(blankRuleConfig, baseConfig) {
+function buildOtherConfig(blankConfig, baseConfig) {
   const config = u
-    .getUncommonKeys(blankRuleConfig, baseConfig.rules)
+    .getUncommonKeys(blankConfig, baseConfig.rules)
     .reduce( (config, rule) => {
       const obj = { rules: {} }
       obj.rules[rule] = baseConfig.rules[rule]
@@ -72,12 +69,11 @@ function buildData(ruleData, ruleConfig) {
 
   const allData = ruleData.reduce( (newData, data) => {
     const value = ruleConfig.rules[data.name]
-    const obj= {}
+    const obj= {
 
-    obj[data.type] = {}
-    obj[data.type][data.name] =
-      u.wrapText(data.description, '    //  ') + '\n' +
-      u.wrapText(data.name + ' = ' + value, '    ') + '\n\n'
+    }
+
+
 
     if (newData[data.type]) {
       obj[data.type] = {
@@ -91,7 +87,7 @@ function buildData(ruleData, ruleConfig) {
       ...obj
     }
 
-  }, {})
+  }, [])
 
   return allData
 }
@@ -99,16 +95,16 @@ function buildData(ruleData, ruleConfig) {
 function build(ruleDir, baseDir) {
   const ruleData = buildRuleData(ruleDir)
   const baseConfig = getBaseConfig(baseDir)
-  const blankRuleConfig = buildBlankRuleConfig(ruleData)
+  const blankConfig = buildblankConfig(ruleData)
   const config = buildConfig(
-    blankRuleConfig, baseConfig
+    blankConfig, baseConfig
   )
   const otherConfig = buildOtherConfig(
-    blankRuleConfig, baseConfig
+    blankConfig, baseConfig
   )
   const data = buildData(ruleData, config)
 
-  console.log(data)
+
 }
 
 build('./vendor/lib/rules/', './input')
